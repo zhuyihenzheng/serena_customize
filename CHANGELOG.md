@@ -2,6 +2,18 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+* Framework Support (experimental):
+  - Add framework-aware cross-artifact navigation for Java/Spring projects, resolving bindings that a
+    Java language server cannot see. Exposed via four optional tools (disabled by default; enable per
+    project via `included_optional_tools`):
+      - `find_mapper_xml_for_method` / `find_mapper_method_for_xml`: bidirectional navigation between a
+        MyBatis Java mapper interface method and its `<select>`/`<insert>`/`<update>`/`<delete>` XML statement.
+      - `find_thymeleaf_bindings_for_model_attribute` / `list_thymeleaf_model_attributes`: navigation
+        between a controller-provided model attribute and the Thymeleaf template expressions referencing it.
+    Mapper XML is parsed via the standard-library `xml.parsers.expat` (no new dependency) extracting only the
+    binding skeleton (namespace + statement ids); Thymeleaf templates are parsed for model-attribute
+    references only, excluding `th:each` loop variables and static markup, to stay token-efficient.
+
 * General:
   - Fix `--project-from-cwd` hijacking git worktrees nested under a Serena project. `find_project_root`
     now walks up in a single pass so the nearest project boundary wins (either a `.serena/project.yml`

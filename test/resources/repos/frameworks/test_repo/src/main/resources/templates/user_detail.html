@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${pageTitle}">User Detail</title>
+</head>
+<body>
+    <h1 th:text="${user.name}" class="text-xl font-bold">Name</h1>
+    <p th:text="${user.email}">email</p>
+
+    <form th:object="${userForm}" method="post">
+        <input type="text" th:field="*{email}"/>
+        <input type="number" th:field="*{age}"/>
+        <span th:text="*{name}">name</span>
+    </form>
+
+    <ul>
+        <li th:each="item : ${items}" th:text="${item.label}">item</li>
+    </ul>
+
+    <div th:if="${isAdmin}">
+        <a th:href="@{/admin}">Admin</a>
+    </div>
+</body>
+</html>

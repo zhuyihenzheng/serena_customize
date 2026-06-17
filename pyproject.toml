@@ -360,6 +360,7 @@ markers = [
   "scss: language server running for SCSS / Sass / CSS (some-sass-language-server)",
   "angular: language server running for Angular (uses @angular/language-server + @angular/language-service tsserver plugin)",
   "ada: language server running for Ada / SPARK (uses AdaCore Ada Language Server)",
+  "frameworks: framework-aware cross-artifact binding tests (MyBatis/Thymeleaf; no language server required)",
 ]
 
 [tool.codespell]
