@@ -155,3 +155,19 @@ class TestThymeleafTemplateParser:
         parser = ThymeleafTemplateParser()
         assert parser.is_candidate('<p th:text="${x}">x</p>') is True
         assert parser.is_candidate('<p class="foo">x</p>') is False
+
+    def test_th_each_loop_variable_excluded_in_descendant_elements(self) -> None:
+        # a th:each loop variable is in scope for the whole subtree, so a reference on a
+        # descendant element (the common <tr th:each> / child <td> pattern) must not be
+        # reported as a model attribute; only the iterated collection is one
+        content = (
+            "<table>\n"
+            '  <tr th:each="c : ${items}">\n'
+            '    <td th:text="${c.id}">-</td>\n'
+            '    <td th:text="${c.name}">-</td>\n'
+            "  </tr>\n"
+            "</table>\n"
+        )
+        roots = ThymeleafTemplateParser().parse("list.html", content).root_variables()
+        assert "items" in roots
+        assert "c" not in roots

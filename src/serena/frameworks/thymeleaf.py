@@ -15,8 +15,10 @@ Known limitations (intentionally out of scope for the initial milestone):
 * Iteration variables introduced by ``th:each`` (e.g. ``item`` in
   ``th:each="item : ${items}"``) are *local* variables, not model attributes; this parser
   excludes them from the references it reports (only the iterated collection ``items`` is
-  a model attribute). Variables introduced by ``th:with`` are likewise local but, unlike
-  ``th:each``, are not currently tracked for exclusion in nested expressions.
+  a model attribute). The exclusion is scoped to the whole subtree below the declaring
+  element, so a loop variable referenced on a descendant (e.g. ``${item.label}`` in a
+  child ``<td>``) is excluded as well. Variables introduced by ``th:with`` are likewise
+  local but are not currently tracked for exclusion.
 * Expression utility objects (``#dates``, ``#strings``, ...) and link expressions
   (``@{...}``) are not treated as model-attribute references.
 """
@@ -120,9 +122,12 @@ class ThymeleafTemplateParser:
         references: list[TemplateExpressionReference] = []
         line = (tag.sourceline or 1) - 1
 
-        # collect local iteration variables declared on this element so that they are not
-        # misreported as model attributes when they reappear in other expressions
-        local_variables = self._extract_each_local_variables(tag)
+        # collect local iteration variables in scope on this element so that they are not
+        # misreported as model attributes when they reappear in other expressions; a
+        # th:each loop variable is in scope for the entire subtree below the element that
+        # declares it, so ancestors' loop variables must be excluded here too (the common
+        # case being a th:each on a <tr> whose loop variable is used in child <td>s)
+        local_variables = self._extract_each_local_variables(tag) | self._resolve_ancestor_each_variables(tag)
 
         # a th:object on this element binds its root variable directly to a model attribute
         own_object_root = self._extract_own_object_root(tag)
@@ -167,6 +172,19 @@ class ThymeleafTemplateParser:
         head, _, _ = raw.partition(":")
         names = {part.strip() for part in head.split(",") if part.strip()}
         return frozenset(names)
+
+    def _resolve_ancestor_each_variables(self, tag: Tag) -> frozenset[str]:
+        """
+        :param tag: an HTML element
+        :return: the union of all ``th:each`` loop variables declared by the element's
+            ancestors; these remain in scope for the entire subtree below the declaring
+            element and therefore must not be reported as model attributes when referenced
+            on a descendant (e.g. ``${c.id}`` in a ``<td>`` under ``<tr th:each="c : ...">``)
+        """
+        inherited: set[str] = set()
+        for parent in tag.parents:
+            inherited |= self._extract_each_local_variables(parent)
+        return frozenset(inherited)
 
     def _extract_own_object_root(self, tag: Tag) -> Optional[str]:
         """
